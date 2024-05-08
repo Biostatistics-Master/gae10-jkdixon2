@@ -1,6 +1,6 @@
 ---
 title: "GAE10: PCA & NMDS"
-author: "Your Name Here"
+author: "Jill Dixon"
 format: 
   html:
     theme: custom.scss
@@ -21,6 +21,11 @@ knitr::opts_chunk$set(
   echo = FALSE
   )
 
+
+library(vegan) 
+library(ggrepel) 
+library(FactoMineR) 
+library(factoextra)
 library(latex2exp)
 library(patchwork)
 library(kableExtra)
@@ -52,6 +57,8 @@ knitr::include_graphics("Kingfishers.png")
 
 #### Statistical Methods:
 
+I used principal components analysis to examine the patterns of coloration in data provided by @babarovicEffectsEcologyBehavior2023. All analyses were conducted in R [@base], and I used the PCA function from the FactoMineR package [@FactoMineR] to conduct a principal components analysis both on individuals and on the variables. Using the tidyverse, kableExtra, FactoMineR, and factoextra packages, I visualized the PCA and analyzed the results [@tidyverse; @kableExtra; @FactoMineR; @factoextra]. A PCA was run on the groups of birds based on degree of parental care, hunting strategy, light environment, and territoriality, and the one for hunting strategy was included because it showed the highest separation between individuals.
+
 ```{r}
 #| label: Scenario1DataImport
 
@@ -62,7 +69,52 @@ knitr::include_graphics("Kingfishers.png")
 # colors.csv. Please explore any grouping and/or patterning among the species
 # and their ecological/behavioral traits.
 
+
+scen1data <- read_csv("colors.csv", show_col_types = FALSE)
+
 ```
+
+### Results
+
+```{r}
+#| label: fig-scen1biplot
+#| fig-cap: "PCA for Color of Different Areas of the Body for Kingfishers Based on Hunting Strategy"
+#| fig-asp: 0.8
+
+scen1PCA <- PCA(
+  scen1data,
+  quanti.sup = 13,
+  quali.sup = c(1,14:17),
+  graph = FALSE
+)
+
+Indfig <- fviz_pca_ind(
+  scen1PCA,
+  repel = TRUE,
+  label = "none",
+  habillage = 
+    "Hunting_strategy"
+  )
+
+
+Varfig <- fviz_pca_var(
+  scen1PCA,
+  repel = TRUE,
+  label = "var"
+)
+
+Varfig +
+  Indfig +
+  plot_layout(ncol =1)
+
+```
+
+```{r}
+summary(scen1PCA)
+
+```
+
+The PCA showed that dorsal areas of the bird (tail, rump, nape, and wing) are more closely correlated with principal component 1, and ventral areas of the bird (belly, breast, throat, and tail underside were more closely related with principal component 2 (@fig-scen1biplot). A positive position on PC1 was associated with dorsal areas of the bird appearing more blue, and a positive position on PC2 was associated with the underside of the bird appearing more red/green. The centroids for each of the four groups were in different quadrants for the PCA examining hunting strategy. Aerial catchers clustered to the left side of the graph, with the centroid located in the upper left quadrant. This suggested that aerial catchers were less blue on their dorsal sides and more red/green on their venters. Ground catchers showed slight clustering to the right side of the graph, with their centroid located in the upper left quadrant. This suggested that their dorsal sides were more likely to be blue, and their venters were more likely to be red/green. The centroid for the ground dwellers was in the lower left quadrant, which means that they were less likely to be blue on their dorsal side or red/green on their ventral side. The centroid for the water divers was in the lower right quadrant, which indicated that they were more likely to be blue on their dorsum and less likely to be red/green on their front side (@fig-colorbiplot).
 
 ### References:
 
@@ -78,6 +130,8 @@ In Summer 2011, the researchers visited 17 deer exclosures in upland forests of 
 
 #### Statistical Methods:
 
+An NMDs was performed on the data from @sabo2017 using the metaMDS function from the vegan package [@vegan]. Then, a PERMANOVA was run using the adonis2 function from the vegan package and created a table using the kbl function from the kableExtra package [@vegan-3, @kableExtra-2].
+
 ```{r}
 #| label: Scenario2DataImport
 
@@ -88,6 +142,52 @@ In Summer 2011, the researchers visited 17 deer exclosures in upland forests of 
 # Use NMDS to explore the differences in plant community inside and outside the
 # deer exclosures, then test for differences in the plant communities between
 # the deer exclosures and the adjacent forests.
+
+deer <- read_csv("Sabo_etal_data.csv", show_col_types = FALSE)
 ```
+
+### Results
+
+```{r}
+#| label: deernMDS
+#| results: "hide"
+
+deermds <- metaMDS(
+  deer[,-c(1:2)],
+  k = 4
+)
+
+deermds$stress
+
+```
+
+```{r}
+#| label: tbl-deerPERMANOVA
+#| tbl-cap: "PERMANOVA to test for a difference in plant assemblages between deer exclusion areas and adjacent areas"
+
+deerPERMANOVA <- adonis2(
+  deer[,-c(1,2)] ~ Treatment,
+  data = deer,
+  by = "margin",
+  permutations = 10001
+)
+
+kbl(
+  deerPERMANOVA,
+  format = "markdown",
+  degits = c(0,3,3,3,3),
+  col.names = c(
+    "df",
+    "SS",
+    "$R^2$",
+    "F",
+    "P"
+    
+  )
+)
+
+```
+
+The results of the PERMANOVA resulted in a p-value for treatment of p \> 0.05 (@tbl-deerPERMANOVA). Because of this, we fail to reject the null hypothesis that there is no significant difference between the plant communities in deer-exclusion and deer-inclusion zones and believe the plant communities in both habitats to be statistically the same.
 
 ### References:
